@@ -1,5 +1,5 @@
 import streamlit as st
-from auth import check_password # if you want to use auth.py for authentication
+# from auth import check_password # if you want to use auth.py for authentication
 from utils import stream_chat_completion, get_chat_completion
 
 # Constants
