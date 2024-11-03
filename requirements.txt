@@ -1,0 +1,13 @@
+python-dotenv==1.0.0
+pre-commit==4.0.1
+
+# Streamlit release notes: https://docs.streamlit.io/develop/quick-reference/release-notes
+streamlit==1.39.0
+pandas==2.2.3 # optional, used for Streamlit tables
+
+# sqlalchemy==2.0.35
+# psycopg2-binary==2.9.9  # to connect to postgres
+
+# openai==1.30.1
+anthropic==0.38.0
+# google-cloud-aiplatform==1.42.1

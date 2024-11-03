@@ -1,0 +1,16 @@
+# To run all pre-commit hooks:
+#   pre-commit run --all-files
+#
+# To test this hook without committing:
+#   pre-commit run update-build-timestamp --all-files
+#
+# To skip this hook for a commit (not recommended):
+#   SKIP=update-build-timestamp git commit -m "your message"
+repos:
+  -   repo: local
+      hooks:
+      -   id: update-build-timestamp
+          name: Update Build Timestamp
+          entry: python -c "import datetime; open('build_info.py', 'w').write(f'BUILD_TIMESTAMP = \"{datetime.datetime.now().strftime(\"%Y-%m-%d %H:%M\")}\"')"
+          language: python
+          stages: [pre-commit]

@@ -1,0 +1,3 @@
+When responding with code edits, include any comments that are nearby the edited code and update them if needed.
+If the user has a "NOTE:" or "IMPORTANT:" comment nearby, always include it in your code edit response.
+Example: if user's code has `#NOTE: Business logic\n\n\ndef calc():...`, include it as `// ... #NOTE: Business logic {{ updated_code }} // ...`
