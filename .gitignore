@@ -4,7 +4,7 @@
 
 # Add your project specific .gitignore rules here
 
-
+temp/
 
 ########################################################################
 # General

@@ -4,8 +4,6 @@ import streamlit as st
 from dotenv import load_dotenv
 
 # from auth import check_password # if you want to use auth.py for authentication
-from components.version_info import show_version_info
-from build_info import BUILD_TIMESTAMP
 from utils.anthropic_llm import stream_anthropic_completion
 
 # Load environment variables
@@ -17,8 +15,6 @@ st.set_page_config(
     page_icon="🛬",
     layout="wide"
 )
-
-show_version_info() # Show version info in sidebar
 
 # Initialize session state to create variables that persist across reruns
 if "messages" not in st.session_state:

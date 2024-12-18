@@ -1,3 +1,13 @@
+This project is designed to be a playground of various large-language model (LLM) and vision-language model (VLM) mini-apps.
+
+It's built using Python, Streamlit, and various LLM and VLM providers (Anthropic, OpenAI, Google, etc.).
+
+It's designed to assist with the usage of common prompt templates in our dev agency, as well as prototyping and experimenting on various concepts some of which may be used in live demos.
+
 When responding with code edits, include any comments that are nearby the edited code and update them if needed.
-If the user has a "NOTE:" or "IMPORTANT:" comment nearby, always include it in your code edit response.
+If the user has a "TODO:" or "NOTE:" or "IMPORTANT:" comment nearby, **always** include it in your code edit response.
 Example: if user's code has `#NOTE: Business logic\n\n\ndef calc():...`, include it as `// ... #NOTE: Business logic {{ updated_code }} // ...`
+
+When asked to do a database migration, write a migration function that can be run in the `main` block unless otherwise specified, including highly visible warnings about irreversible operations and concise safety recommendations for testing and rollback.
+
+Given that tests create a maintenance burden, when I ask you to write tests err on the side of keeping them small, simple and minimal unless I specify otherwise.

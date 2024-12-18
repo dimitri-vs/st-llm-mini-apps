@@ -1,5 +1,4 @@
 python-dotenv==1.0.0
-pre-commit==4.0.1
 
 # Streamlit release notes: https://docs.streamlit.io/develop/quick-reference/release-notes
 streamlit==1.39.0
