@@ -1,19 +1,17 @@
+import json
+import os
+
 from anthropic import Anthropic
 from dotenv import load_dotenv
-import os
-import json
-
-
-load_dotenv()
-
-
-anthropic_client = Anthropic(
-    # This is the default and can be omitted
-    api_key=os.environ.get("ANTHROPIC_API_KEY"),
-)
 
 # See models available here:
 # https://docs.anthropic.com/claude/docs/models-overview
+
+load_dotenv()
+
+anthropic_client = Anthropic(
+    api_key=os.environ.get("ANTHROPIC_API_KEY")
+)
 
 def stream_anthropic_completion(messages, model=None, temperature=0.7, max_tokens=2048):
     """
@@ -30,7 +28,7 @@ def stream_anthropic_completion(messages, model=None, temperature=0.7, max_token
         str: The generated text, yielded in chunks as it is received from the API.
     """
     if model is None:
-        model = "claude-3-opus-20240229"  # Set the default model
+        model = "claude-3-5-sonnet-latest"  # Set the default model
     stream = anthropic_client.messages.create(
         model=model,
         messages=messages,
@@ -58,7 +56,7 @@ def get_anthropic_completion(messages, model=None, temperature=None, max_tokens=
     """
 
     # Set default values set here to allow for None values to be passed explicitly
-    model = model or "claude-3-opus-20240229"
+    model = model or "claude-3-5-sonnet-latest"
     temperature = temperature or 0.7
     max_tokens = max_tokens or 2048
 
@@ -87,7 +85,7 @@ def get_anthropic_json_completion(messages, model=None, temperature=None, max_to
     """
 
     # Set default values set here to allow for None values to be passed explicitly
-    model = model or "claude-3-opus-20240229"
+    model = model or "claude-3-5-sonnet-latest"
     temperature = temperature or 0.7
     max_tokens = max_tokens or 2048
 
