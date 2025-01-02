@@ -9,6 +9,8 @@ st.set_page_config(
 
 st.title("📝 Upwork Contract Info")
 
+st.warning("This app page is currently under development. The generation component needs to be implemented.", icon="⚠️")
+
 # Reset button in top-right
 _, reset_col = st.columns([4, 1])
 with reset_col:
