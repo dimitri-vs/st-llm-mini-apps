@@ -3,7 +3,6 @@ import re
 import urllib.parse
 from typing import Dict, Any
 
-import mistune
 from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
