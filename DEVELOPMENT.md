@@ -5,8 +5,9 @@ Project serves as a playground for LLM/VLM mini-apps using Python, Streamlit, an
 Current mini-apps include:
 - **Better Loom Info**: Enhances Loom video transcripts with AI-generated summaries and chapter markers
 - **Upwork Contract Info**: Assists in drafting standardized contract titles and descriptions
-- **Claude Better Chat UI**: Work-in-progress chat UI for exploring advanced conversation flows
 - **Client Onboarding**: Helps capture and generate core content for initial client engagements—like summarizing transcripts, creating a client profile, and drafting a project plan.
+- **Meeting Action Items**: Converts meeting transcripts into actionable insights and summaries
+- **Slack Bot Messenger**: Sends formatted messages to Slack channels with markdown support and preview functionality
 
 ## **Uncertainties, Blockers & Known Issues**
 

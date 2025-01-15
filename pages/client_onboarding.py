@@ -10,11 +10,11 @@ st.set_page_config(
 )
 st.title("👋 Client Onboarding")
 
-
+# TODO: replace this with components/dynamic_context_component.py
 def render_dynamic_context_sections(st):
     """
-    Renders an indeterminate number of text areas for context snippets.
-    Returns the combined list of snippets.
+    Renders an indeterminate number of text areas for context snippets with metadata headers.
+    Returns the combined list of validated snippets.
     """
     # Initialize dynamic context sections in session state
     if 'context_sections_count' not in st.session_state:
@@ -25,6 +25,10 @@ def render_dynamic_context_sections(st):
     with control_col1:
         if st.button("Add Snippet", icon="➕"):
             st.session_state.context_sections_count += 1
+            # Initialize new text area with template
+            new_key = f"context_section_{st.session_state.context_sections_count - 1}"
+            if new_key not in st.session_state:
+                st.session_state[new_key] = "CONTEXT: ______ 🔴\n\n"
     with control_col2:
         if st.button("Remove Snippet", icon="➖") and st.session_state.context_sections_count > 1:
             st.session_state.context_sections_count -= 1
@@ -35,14 +39,41 @@ def render_dynamic_context_sections(st):
 
     # Collect context inputs
     context_inputs = []
+    all_valid = True
+
     for i in range(st.session_state.context_sections_count):
+        # Get or set default template
+        key = f"context_section_{i}"
+        if key not in st.session_state:
+            st.session_state[key] = "CONTEXT: ______ 🔴\n\n"
+
+        # Extract metadata for label if it exists
+        current_text = st.session_state[key]
+        metadata = ""
+        if current_text.startswith("CONTEXT:"):
+            first_line = current_text.split('\n')[0].replace("CONTEXT:", "").strip()
+            if first_line and "🔴" not in first_line:
+                metadata = f" - {first_line[:80]}{'...' if len(first_line) > 80 else ''}"
+
         context_input = st.text_area(
-            f"Context Snippet {i+1}",
-            key=f"context_section_{i}",
-            help="Paste relevant context (email threads, transcripts, doc excerpts, text from about pages, etc.)."
+            f"Context Snippet {i+1}{metadata}",
+            value=current_text,
+            key=key,
+            height=150,
+            help="Start with 'CONTEXT: description' header, followed by the content. Remove the red dot (🔴) once completed."
         )
-        if context_input:
+
+        # Validate snippet
+        is_valid = "🔴" not in context_input
+        if not is_valid:
+            all_valid = False
+            st.warning(f"Complete context snippet {i+1} and remove the red dot (🔴).", icon="⚠️")
+
+        if context_input and is_valid:
             context_inputs.append(context_input)
+
+    # Store validation state
+    st.session_state.context_snippets_valid = all_valid
 
     return context_inputs
 
@@ -233,7 +264,7 @@ if 'detailed_profile' in st.session_state:
             Streams refinement responses from the LLM in response to user queries,
             and appends them to session state messages for display.
             """
-            # Combine the user’s prompt with your existing context
+            # Combine the user's prompt with your existing context
             additional_instructions = (
                 "You are helping refine and clarify details about a client profile and project scoping.\n\n"
                 "Original Context Snippets:\n"
@@ -248,30 +279,15 @@ if 'detailed_profile' in st.session_state:
 
             # Build the conversation so far
             messages = list(st.session_state.profile_chat_messages)
-
-            # Add the user's new message merged with the instructions
             messages.append({"role": "user", "content": additional_instructions})
 
-            # Append the streaming chunks to a response variable
-            response_content = ""
-            asst_placeholder = st.chat_message("assistant")
-
-            for chunk in stream_anthropic_completion(messages):
-                response_content += chunk
-                asst_placeholder.write(response_content)
-
-            # Update session state messages
-            st.session_state.profile_chat_messages.extend([
-                {"role": "user", "content": user_prompt},
-                {"role": "assistant", "content": response_content}
-            ])
+            return stream_anthropic_completion(messages)
 
         # Render the new generic chat component
         chat_component(
             messages_key="profile_chat_messages",
-            on_send_message=handle_profile_refinement,
+            response_stream=handle_profile_refinement,
             chat_height=400,
-            reset_button_label="Reset Chat",
             prompt_label="Ask for clarification or details..."
         )
 
@@ -311,38 +327,33 @@ if 'title_summary' in st.session_state:
             st.session_state.title_summary_chat_messages = []
 
         def handle_title_summary_refinement(user_prompt):
+            """
+            Streams refinement responses from the LLM in response to user queries,
+            and appends them to session state messages for display.
+            """
+            # Combine the user's prompt with your existing context
             additional_instructions = (
                 "You are helping refine and clarify the project titles and summary.\n\n"
                 "Original Context Snippets:\n"
-                + "\n\n---\n\n".join(context_snippets)
-                + "\n\nPeople & Roles:\n"
-                + people_and_roles
-                + "\n\nCurrent Titles & Summary:\n"
-                + st.session_state.title_summary
-                + "\n\nUser Query:\n"
-                + user_prompt
+                # + "\n\n---\n\n".join(context_snippets)
+                # + "\n\nPeople & Roles:\n"
+                # + people_and_roles
+                # + "\n\nCurrent Titles & Summary:\n"
+                # + st.session_state.title_summary
+                # + "\n\nUser Query:\n"
+                # + user_prompt
             )
 
+            # Build the conversation so far
             messages = list(st.session_state.title_summary_chat_messages)
             messages.append({"role": "user", "content": additional_instructions})
 
-            response_content = ""
-            asst_placeholder = st.chat_message("assistant")
-
-            for chunk in stream_anthropic_completion(messages):
-                response_content += chunk
-                asst_placeholder.write(response_content)
-
-            st.session_state.title_summary_chat_messages.extend([
-                {"role": "user", "content": user_prompt},
-                {"role": "assistant", "content": response_content}
-            ])
+            return stream_anthropic_completion(messages)
 
         chat_component(
             messages_key="title_summary_chat_messages",
-            on_send_message=handle_title_summary_refinement,
+            response_stream=handle_title_summary_refinement,
             chat_height=400,
-            reset_button_label="Reset Chat",
             prompt_label="Ask for title/summary refinements..."
         )
 

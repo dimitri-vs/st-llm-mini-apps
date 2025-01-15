@@ -2,47 +2,94 @@ import streamlit as st
 
 def chat_component(
     messages_key="chat_messages",
-    on_send_message=None,
+    response_stream=None,
     chat_height=400,
-    reset_button_label="Reset Chat",
     prompt_label="Type your message...",
     border=True,
 ):
     """
     Renders a general-purpose chat UI using Streamlit.
-    Minimally requires:
-       - A messages_key in st.session_state for storing chat messages.
-       - An on_send_message callback to handle new user messages.
 
-    :param messages_key: Session state key where chat messages are stored as a list of dicts
-                         with "role" and "content" entries.
-    :param on_send_message: (callable) A function that is called with the user input text
-                            whenever the user sends a new message.
-    :param chat_height: Height for the chat container (in pixels).
-    :param reset_button_label: Label for the button that resets the chat.
-    :param prompt_label: Placeholder label for the user's chat input field.
-    :param border: Whether to show a border around the chat container.
+    Parameters:
+        messages_key (str): Key for storing chat messages in session state
+        response_stream (Generator[str, Any, None]): Function that yields response chunks
+        chat_height (int): Height of chat container in pixels
+        prompt_label (str): Placeholder text for the input field
+        border (bool): Whether to show container border
+
+    Examples:
+        # Basic usage with default model settings
+        chat_component(
+            messages_key="chat_messages",
+            response_stream=stream_anthropic_completion
+        )
+
+        # Using Claude with custom temperature and max tokens
+        chat_component(
+            messages_key="chat_messages",
+            response_stream=lambda messages: stream_anthropic_completion(
+                messages,
+                temperature=0.3,
+                max_tokens=2000
+            )
+        )
+
+        # Using a specific Claude model with custom settings
+        def custom_claude_stream(messages):
+            return stream_anthropic_completion(
+                messages,
+                model="claude-3-opus-20240229",
+                temperature=0.7,
+                max_tokens=4000
+            )
+
+        chat_component(
+            messages_key="chat_messages",
+            response_stream=custom_claude_stream,
+            chat_height=600
+        )
     """
 
-    # Show a Reset Chat button if we already have messages in session state.
-    if st.session_state.get(messages_key, []):
-        if st.button(reset_button_label, key=f"reset_btn_{messages_key}"):
-            st.session_state[messages_key] = []
-            st.rerun()
+
 
     # Create the scrollable container for the chat area
     chat_container = st.container(border=border, height=chat_height)
 
     with chat_container:
+        # Show a Reset Chat button if we already have messages in session state.
+        if st.session_state.get(messages_key, []):
+            if st.button("Reset Chat", key=f"reset_btn_{messages_key}"):
+                st.session_state[messages_key] = []
+                st.rerun()
+
         # Display existing messages from session state
         for msg in st.session_state.get(messages_key, []):
             st.chat_message(msg["role"]).write(msg["content"])
 
-    # Provide an input box for the user's next prompt
-    user_text = st.chat_input(prompt_label, key=f"chat_input_{messages_key}")
-    if user_text and on_send_message is not None:
-        # Immediately display user's message in the UI
-        # chat_container.chat_message("user").write(user_text)
+        # Provide an input box for the user's next prompt
+        user_text = st.chat_input(prompt_label, key=f"chat_input_{messages_key}")
+        if user_text:
 
-        # Call the provided callback to handle the new user message
-        on_send_message(user_text)
+            if messages_key not in st.session_state:
+                st.session_state[messages_key] = []
+
+            # Add user message and prepare context
+            st.session_state[messages_key].extend([
+                {"role": "user", "content": user_text},
+                {"role": "assistant", "content": ""}  # Empty placeholder for streaming
+            ])
+            chat_container.chat_message("user").write(user_text)
+
+            # Stream the response if a streaming function is provided
+            if response_stream:
+                with st.chat_message("assistant"):
+                    response_placeholder = st.empty()
+                    response_content = ""
+
+                    print(st.session_state[messages_key])
+                    for chunk in response_stream(st.session_state[messages_key][:-1]):
+                        response_content += chunk
+                        st.session_state[messages_key][-1]["content"] = response_content
+                        response_placeholder.markdown(response_content)
+
+            st.rerun()

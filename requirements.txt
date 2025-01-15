@@ -13,4 +13,3 @@ anthropic==0.42.0
 # google-cloud-aiplatform==1.42.1
 
 slack_sdk==3.34.0 # for sending messages as a slack bot
-mistune==3.1.0 # for converting markdown to slack formatting
