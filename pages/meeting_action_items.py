@@ -1,8 +1,8 @@
 import json
 
 import streamlit as st
-
-from utils.anthropic_llm import get_anthropic_completion, get_anthropic_json_completion
+from components.chat_component import chat_component
+from utils.anthropic_llm import get_anthropic_completion, get_anthropic_json_completion, stream_anthropic_completion
 
 st.set_page_config(
     page_title="Agency Gen AI Mini-Apps",
@@ -12,8 +12,6 @@ st.set_page_config(
 
 st.title("🗣️→✅ Meeting Action Items")
 st.caption("Convert any meeting or video transcript into actionable insights")
-
-st.warning("This app page is currently under development. The generation component needs to be implemented.", icon="⚠️")
 
 # Create columns for layout - one for spacing and one for the reset button
 _, reset_col = st.columns([4, 1])
@@ -60,7 +58,7 @@ loom_prompt_1 = """
 Analyze the provided transcript and distill the key information.
 
 Create these sections:
-⏩ TL;DR - What the meeting was about in 1-2 sentences.
+⏩ Recap - What the meeting was about in 1-2 sentences.
 ✅ Action Items - List all action items with:
   - Who is responsible (mark as "UNCLEAR" if not specified)
   - What needs to be done
@@ -106,89 +104,82 @@ Format your response using bullet points and maintain the same sections (TL;DR, 
 # Add button and handle LLM interactions
 if st.button("Generate Action Items", type="primary", disabled=not is_valid_transcript):
 
-    with st.spinner("Generating action items..."):
+    progress_bar = st.progress(0, text="Starting analysis...")
+
+    with st.spinner("Generating initial analysis..."):
         # First request - Get initial analysis
         messages = [{"role": "user", "content": rendered_prompt}]
         initial_response = get_anthropic_completion(messages)
         # Store in session state
         st.session_state.initial_response = initial_response
 
-        # Second request - Get condensed chapters
+        progress_bar.progress(50, text="Generating additional insights...")
+
+        # Second request - Get follow-up analysis
         messages = [
             {"role": "user", "content": rendered_prompt},
             {"role": "assistant", "content": initial_response},
             {"role": "user", "content": ln_chapters_prompt}
         ]
-        chapters_response = get_anthropic_completion(messages)
-        # Store chapters response directly in session state
-        st.session_state.chapters_data = chapters_response
+        followup_response = get_anthropic_completion(messages)
+        # Store combined response in session state
+        st.session_state.combined_analysis = (
+            initial_response +
+            "\n\n═══════════════════════════════════════════\n" +
+            "📝 Additional Insights\n" +
+            "═══════════════════════════════════════════\n\n" +
+            followup_response
+        )
 
-# Display the content if it exists in session state
-if 'initial_response' in st.session_state:
-    st.markdown("### Initial Analysis")
-    st.text_area(
-        label="Initial Analysis",
-        value=st.session_state.initial_response,
-        height=300,
-    )
+        progress_bar.progress(100, text="Analysis complete!")
 
-if 'chapters_data' in st.session_state:
-    st.markdown("### Action Items")
-    # Remove the JSON parsing and display directly
-    st.markdown(st.session_state.chapters_data)
+# Display the combined content if it exists in session state
+if 'combined_analysis' in st.session_state:
+    st.markdown("### Action Items and Analysis")
 
-# ---- made changes to around here ----
+    # Create two columns for the analysis and chat
+    analysis_col, chat_col = st.columns([1, 1])
 
-# # Create a button for generating the follow-up message
-# if st.button("Generate Follow-up Message", type="primary", disabled=not is_valid_transcript):
-#     with st.spinner("Generating follow-up message..."):
-#         # Use initial_response from session state
-#         initial_response = st.session_state.get('initial_response', '')
-#         if not initial_response:
-#             st.error("Please generate the title and summary first!")
-#             st.stop()
+    with analysis_col:
+        st.text_area(
+            label="Complete Analysis",
+            value=st.session_state.combined_analysis,
+            height=500,
+        )
 
-#         follow_up_template = """
-# Write a message to the Loom recipient using the following template. The template is more of a general suggestion, don't feel constrained by it, I just want the overall message to be concise. Persist the orange block and placeholders (eg. ________🟧) as they are a reminder for me review/edit.
+    with chat_col:
+        def stream_meeting_response(messages):
+            """
+            Streams responses for meeting analysis questions, maintaining context
+            of the original transcript and analysis.
+            """
+            # Only add the context if this is the first message in the conversation
+            if len(messages) == 1:
+                additional_context = (
+                    "You are helping answer questions about a meeting analysis.\n\n"
+                    "Original Transcript:\n"
+                    f"{transcript}\n\n"
+                    "Current Analysis:\n"
+                    f"{st.session_state.combined_analysis}\n\n"
+                )
+                # Add context to just the first message
+                context_messages = messages.copy()
+                context_messages[0]["content"] = additional_context + context_messages[0]["content"]
+            else:
+                # Use messages as-is for subsequent exchanges
+                context_messages = messages
 
-# <template>
-# {recipient_name}, {OPTIONAL_reply_or_engagement_with_their_last_message} {transition} made a short video to {purpose_of_video}🟧 and show {concise_engagement_hook_on_what_they_might_want_to_see}. Here are the key points:
-# - {key_point_1}
-# - {more_detailed_key_point_2}
-# - {more_detailed_key_point_3}
-# - {key_point_4}
+            return stream_anthropic_completion(
+                context_messages,
+                temperature=0.7,
+                max_tokens=1000
+            )
 
-# {loom_video_link}🟧
-# </template>
-
-# Use the following context and transcript to craft the message:
-
-# <Additional Context>
-# {recipient_context}
-# </Additional Context>
-
-# <Loom Video Transcript>
-# {loom_transcript}
-# </Loom Video Transcript>
-#         """.strip()
-
-#         messages = [
-#             {"role": "user", "content": rendered_prompt},
-#             {"role": "assistant", "content": initial_response},
-#             {"role": "user", "content": follow_up_template}
-#         ]
-
-#         follow_up_message = get_anthropic_completion(messages)
-#         # Store follow-up message in session state
-#         st.session_state.follow_up_message = follow_up_message
-
-# # Display the follow-up message if it exists in session state
-# if 'follow_up_message' in st.session_state:
-#     st.markdown("### 📧 Follow-up Message")
-#     st.text_area(
-#         label="Message Template",
-#         value=st.session_state.follow_up_message,
-#         height=350
-#     )
-#     st.warning("Remember to review and edit all sections marked with 🟧 before sending the message.", icon="⚠️")
-
+        chat_component(
+            messages_key="meeting_chat_messages",
+            response_stream=stream_meeting_response,
+            chat_height=500,
+            prompt_label="Ask questions about the analysis...",
+            border=True,
+            show_debug=True
+        )

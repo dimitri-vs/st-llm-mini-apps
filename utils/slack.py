@@ -11,9 +11,6 @@ load_dotenv()
 
 # Elevate Code Bot Settings: https://api.slack.com/apps/A06CZA1Q8D7
 
-# Slack's zero-width space for avoiding certain in-word formatting issues
-ZWS = "\u200B"
-
 def post_message_to_channel(channel_id: str, message: str, use_markdown: bool = True) -> Dict[str, Any]:
     """
     Posts a message to a specific Slack channel using the SLACK_BOT_USER_TOKEN.
@@ -117,7 +114,6 @@ def test_simple_slackify():
     Comprehensive test suite for simple_slackify function, adapted from the original test cases
     but with simplified output expectations.
     """
-    ZWS = '\u200B'  # Zero-width space, though we won't use it in simple version
     tests = [
         # Basic formatting
         ("**bold**", "*bold*\n"),
@@ -208,32 +204,6 @@ def test_simple_slackify():
         print(f"\nTotal: {len(failures)} failed")
     else:
         print("✨ All simple_slackify tests passed successfully!")
-
-def invite_bot_to_channel(channel_id: str) -> dict:
-    """
-    Invites the bot to the specified channel.
-
-    Args:
-        channel_id (str): The ID of the channel to invite the bot to
-
-    Returns:
-        dict: Slack API response
-    """
-    slack_bot_token = os.environ.get("SLACK_BOT_USER_TOKEN")
-    if not slack_bot_token:
-        raise ValueError("SLACK_BOT_USER_TOKEN environment variable is not set")
-
-    client = WebClient(token=slack_bot_token)
-    # Get bot user ID from the auth test
-    auth_response = client.auth_test()
-    bot_user_id = auth_response["user_id"]
-
-    # Invite bot to channel
-    response = client.conversations_invite(
-        channel=channel_id,
-        users=[bot_user_id]
-    )
-    return response
 
 if __name__ == "__main__":
     test_simple_slackify()

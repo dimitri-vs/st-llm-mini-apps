@@ -55,7 +55,7 @@ loom_prompt_1 = """
 Write Loom video notes using the provided Loom Video Transcript and the Additional Context.
 
 Create sections for:
-🎦 Loom Title - Create a title for the video that is at least 10 words long. If the intended recipient of the video is clear and their name is mentioned, prefix the video title with their name - for example, if the transcript starts with something  like "Hey David, ..." then you might prefix the video title with `@David: `. Additionally, you should add a relevant emoji to the end of the title. The recipient name and emoji don't count towards the title word limit.
+🎦 Loom Title - Create a title for the video that is at least 10 words long. If the intended recipient of the video is clear and their name is mentioned, prefix the video title with their name - for example, if the transcript starts with something  like "Hey David, ..." then you might prefix the video title with `@David: `. Additionally, you should add a relevant emoji to the end of the title, but avoid using the robot emoji (🤖). The recipient name and emoji don't count towards the title word limit.
 📝 Summary - A summary of the video content. Limit your summary to 5 sentences. Write the summary from the speakers first-person perspective.
 
 <Additional Context>

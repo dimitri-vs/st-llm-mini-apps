@@ -4,19 +4,20 @@
 Duplicate and rename the `.env.example` file to `.env` adding your own values.
 
 ### Initial Setup
-Requires Python 3.8 or higher (check with `python --version`)
-- Create a virtual environment using `python -m venv venv`
-- Always run `venv\Scripts\activate` to activate the virtual environment
-- Run `python -m pip install --upgrade pip` to ensure pip is up to date
-- Run `pip install -r requirements.txt` to install all dependencies
+Requires Python 3.8 or higher
+Requires `uv` CLI tool (https://docs.astral.sh/uv/getting-started/#installation)
+- Create a virtual environment using `uv venv --python ">=3.8"`
+- Always run `.venv\Scripts\activate` to activate the virtual environment (setup your IDE to do it automatically)
+- Run `uv pip install -r requirements.txt` to install all dependencies
+- Copy `.env.example` to `.env` and fill in your API keys
 - Run `streamlit run app.py` to start the server
 
 ### Ongoing Development
-- Run `venv\Scripts\activate` to activate the virtual environment
+- Run `.venv\Scripts\activate` to activate the virtual environment
 - ⚠️ Always activate the virtual environment before running any commands
 - Run `streamlit run app.py` to start the server
-- To check for package updates, run `pip list --outdated`
-- To add new packages, first add it to `requirements.txt` then run `pip install -r requirements.txt`
+- To check for package updates, run `pip list --outdated` (may take a while)
+- To add new packages, first add it to `requirements.txt` then run `uv pip sync requirements.txt`
 
 ## Deploying to Railway.app
 - [Dashboard](https://railway.app/dashboard) > New Project > Deploy from GitHub repo > Add variables

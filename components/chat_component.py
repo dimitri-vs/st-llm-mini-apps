@@ -6,6 +6,7 @@ def chat_component(
     chat_height=400,
     prompt_label="Type your message...",
     border=True,
+    show_debug=False,
 ):
     """
     Renders a general-purpose chat UI using Streamlit.
@@ -16,6 +17,7 @@ def chat_component(
         chat_height (int): Height of chat container in pixels
         prompt_label (str): Placeholder text for the input field
         border (bool): Whether to show container border
+        show_debug (bool): Whether to show debug information about the message thread
 
     Examples:
         # Basic usage with default model settings
@@ -50,7 +52,13 @@ def chat_component(
         )
     """
 
-
+    # Add debug view before the chat container if enabled
+    if show_debug:
+        with st.expander("🔍 Debug: Message Thread", expanded=False):
+            st.code(
+                str(st.session_state.get(messages_key, [])),
+                language="python"
+            )
 
     # Create the scrollable container for the chat area
     chat_container = st.container(border=border, height=chat_height)

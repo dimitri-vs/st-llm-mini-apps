@@ -18,8 +18,11 @@ st.markdown("""
 ### Current Apps
 
 - **Better Loom Info**: Enhances Loom video transcripts with AI-generated summaries and chapter markers.
-- **New Upwork Contract**: Draft standardized contract titles and descriptions for new or existing Upwork contracts, with an eye toward SEO marketing value.
-- **Claude Better Chat UI**: A work in progress chat UI using Streamlit's chat components to explore advanced conversation flows.
+- **New Upwork Contract**: (WIP) Draft standardized contract titles and descriptions for new or existing Upwork contracts.
+- **Meeting Action Items**: Converts meeting transcripts into actionable insights and summaries.
+- **Slack Explorer**: Browse and search Slack workspace exports locally.
+- **Token Counter**: Calculate token usage and costs for various LLM models.
+- **LLM Context Builder**: Build and manage context for LLM interactions.
 
 ### Coming Soon
 

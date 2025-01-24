@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.slack import post_message_to_channel, simple_slackify, invite_bot_to_channel
+from utils.slack import post_message_to_channel, simple_slackify
 from slack_sdk.errors import SlackApiError
 import re
 
@@ -21,8 +21,19 @@ def preview_slack_formatting(text: str) -> str:
 
 channel_id = st.text_input(
     "Channel ID",
-    value="C06CZKPP2AV",
     help="Enter the Slack channel ID (e.g., C01234567). You can find this in Slack by right-clicking the channel and selecting 'Copy link' - the ID is in the URL."
+)
+
+message_slack = st.text_area(
+    "Message",
+    help="Enter the message you want to send. You can use Slack's formatting syntax (see Formatting Help above).",
+    height=300
+)
+
+use_markdown = st.checkbox(
+    "Enable rich message formatting",
+    value=True,
+    help="Turn this off if you want to send the message exactly as written, without formatting."
 )
 
 with st.expander("Formatting Help"):
@@ -38,53 +49,22 @@ with st.expander("Formatting Help"):
     - `1.` for numbered lists
     """)
 
-message_slack = st.text_area(
-    "Message",
-    help="Enter the message you want to send. You can use Slack's formatting syntax (see Formatting Help above)."
-)
-
-use_markdown = st.checkbox(
-    "Enable message formatting",
-    value=True,
-    help="Turn this off if you want to send the message exactly as written, without formatting."
-)
-
-if message_slack and use_markdown:
-    with st.container(border=True):
-        st.markdown(preview_slack_formatting(message_slack))
-
 # Convert markdown to Slack mrkdwn if formatting is enabled
 formatted_message = simple_slackify(message_slack) if use_markdown else message_slack
 
-st.text_area("Formatted Message", value=formatted_message, height=200, disabled=True)
+st.text_area("Formatted Message Preview", value=formatted_message, height=200, disabled=True)
 
-# Add bot invitation button
-if st.button("Add Bot to Channel"):
-    if not channel_id:
-        st.error("Please enter a channel ID first.")
-    elif not is_valid_channel_id(channel_id):
-        st.error("Invalid channel ID format. It should start with C, G, or D and be at least 9 characters long.")
-    else:
-        try:
-            # You'll need to implement this function in utils/slack.py
-            response = invite_bot_to_channel(channel_id)
-            if response.get("ok"):
-                st.success(f"Bot successfully added to channel {channel_id}!")
-            else:
-                st.warning("Failed to add bot to channel.")
-        except SlackApiError as e:
-            st.error(f"Failed to add bot: {e.response['error']}")
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {str(e)}")
+if message_slack and use_markdown:
+    with st.expander("Rendered Preview (may not be accurate)", expanded=False):
+        st.markdown(preview_slack_formatting(message_slack))
+
+st.caption("Remember to add the bot (Integrations > Apps) to the channel!")
 
 if st.button("Send Message"):
     if not channel_id or not message_slack:
         st.error("Please fill in both the channel ID and message fields.")
-    elif not is_valid_channel_id(channel_id):
-        st.error("Invalid channel ID format. It should start with C, G, or D and be at least 9 characters long.")
     else:
         try:
-
             response = post_message_to_channel(
                 channel_id,
                 formatted_message,
@@ -92,11 +72,6 @@ if st.button("Send Message"):
             )
             if response.get("ok"):
                 st.success(f"Message sent successfully to channel {channel_id}!")
-                with st.expander("Message Details"):
-                    st.write("Message Timestamp:", response.get("ts"))
-                    st.write("Channel:", response.get("channel"))
-                    if "message" in response:
-                        st.write("Message Content:", response["message"].get("text", message_slack))
             else:
                 st.warning("Message sent but response indicates potential issues.")
         except ValueError as e:
