@@ -1,7 +1,8 @@
 import os
 import re
 import urllib.parse
-from typing import Dict, Any
+from typing import Dict, Any, List
+from datetime import datetime
 
 from dotenv import load_dotenv
 from slack_sdk import WebClient
@@ -35,6 +36,79 @@ def post_message_to_channel(channel_id: str, message: str, use_markdown: bool = 
         }
     except SlackApiError as e:
         print(f"Error sending message: {e.response['error']}")
+        raise
+
+def get_channel_messages(
+    channel_id: str,
+    start_time: str,
+    end_time: str,
+    get_threads: bool = False
+) -> List[Dict[str, Any]]:
+    """
+    Retrieves messages from a Slack channel within a specified date range.
+    Optionally fetches thread replies if get_threads is True.
+
+    Args:
+        channel_id: The ID of the channel to fetch messages from.
+        start_time: ISO 8601 timestamp for start date (e.g., "2024-03-20T00:00:00").
+        end_time: ISO 8601 timestamp for end date (e.g., "2024-03-21T00:00:00").
+        get_threads: If True, any message with a thread_ts will have replies fetched and nested.
+
+    Returns:
+        A list of message objects with relevant fields and optional thread replies.
+
+    Raises:
+        ValueError: If token is not set.
+        SlackApiError: If the API call fails.
+    """
+    slack_bot_token = os.environ.get("SLACK_BOT_USER_TOKEN")
+    if not slack_bot_token:
+        raise ValueError("Slack bot token not found in environment variables.")
+
+    client = WebClient(token=slack_bot_token)
+
+    user_map = fetch_user_map(client)
+    channel_map = fetch_channel_map(client)
+
+    messages = []
+
+    try:
+        start_ts = int(datetime.fromisoformat(start_time).timestamp())
+        end_ts = int(datetime.fromisoformat(end_time).timestamp())
+        cursor = None
+
+        while True:
+            result = client.conversations_history(
+                channel=channel_id,
+                limit=100,
+                oldest=str(start_ts),
+                latest=str(end_ts),
+                cursor=cursor
+            )
+
+            for msg in result["messages"]:
+                parsed = parse_message(msg, user_map, channel_map)
+
+                if get_threads and "thread_ts" in msg and msg.get("reply_count", 0) > 0:
+                    thread_replies = fetch_thread_replies(
+                        client,
+                        channel_id,
+                        msg["thread_ts"],
+                        user_map,
+                        channel_map
+                    )
+                    parsed["thread_replies"] = thread_replies
+
+                messages.append(parsed)
+
+            cursor = result.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+
+        return messages
+
+    except SlackApiError as e:
+        print(f"Error fetching messages: {e.response['error']}")
         raise
 
 def simple_slackify(text: str) -> str:
@@ -205,5 +279,132 @@ def test_simple_slackify():
     else:
         print("✨ All simple_slackify tests passed successfully!")
 
+def fetch_user_map(client: WebClient) -> Dict[str, str]:
+    """
+    Returns a dict mapping user IDs (e.g., 'U12345') to a user-friendly name (e.g., 'Dave Smith').
+    """
+    user_map = {}
+    try:
+        cursor = None
+        while True:
+            response = client.users_list(cursor=cursor)
+            for user in response["members"]:
+                user_id = user["id"]
+                name = user["profile"].get("display_name") or user["profile"].get("real_name") or user["name"]
+                user_map[user_id] = name
+
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+    except SlackApiError as e:
+        print(f"Error fetching users: {e.response['error']}")
+        raise
+    return user_map
+
+def fetch_channel_map(client: WebClient) -> Dict[str, str]:
+    """
+    Returns a dict mapping channel IDs (e.g., 'C12345') to channel names (e.g., 'general').
+    """
+    channel_map = {}
+    try:
+        cursor = None
+        while True:
+            response = client.conversations_list(
+                cursor=cursor,
+                types="public_channel,private_channel"
+            )
+            for ch in response["channels"]:
+                channel_map[ch["id"]] = ch["name"]
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+    except SlackApiError as e:
+        print(f"Error fetching channels: {e.response['error']}")
+        raise
+    return channel_map
+
+def replace_slack_ids_in_text(
+    text: str,
+    user_map: Dict[str, str],
+    channel_map: Dict[str, str]
+) -> str:
+    """
+    Detects patterns like <@U12345> and <#C12345> in the text
+    and replaces them with a friendlier name.
+    """
+    pattern = r"<(@|#)([A-Z0-9]+)(?:\|[^>]+)?>"
+
+    def replacer(match):
+        prefix = match.group(1)
+        id_part = match.group(2)
+
+        if prefix == "@":
+            return f"@{user_map.get(id_part, 'unknown_user')}"
+        elif prefix == "#":
+            return f"#{channel_map.get(id_part, 'unknown_channel')}"
+
+    return re.sub(pattern, replacer, text)
+
+def parse_message(
+    message: Dict[str, Any],
+    user_map: Dict[str, str],
+    channel_map: Dict[str, str]
+) -> Dict[str, Any]:
+    """
+    Extract only the relevant Slack message fields and replace ID placeholders in text.
+    """
+    parsed = {
+        "user": message.get("user"),
+        "team": message.get("team"),
+        "ts": message.get("ts"),
+        "type": message.get("type"),
+        "text": replace_slack_ids_in_text(
+            message.get("text", ""),
+            user_map,
+            channel_map
+        ),
+    }
+    if "thread_ts" in message:
+        parsed["thread_ts"] = message["thread_ts"]
+    if "reply_count" in message:
+        parsed["reply_count"] = message["reply_count"]
+    return parsed
+
+def fetch_thread_replies(
+    client: WebClient,
+    channel_id: str,
+    thread_ts: str,
+    user_map: Dict[str, str],
+    channel_map: Dict[str, str]
+) -> List[Dict[str, Any]]:
+    """
+    Fetch the full conversation (including replies) for a thread.
+    """
+    replies = []
+    try:
+        cursor = None
+        while True:
+            response = client.conversations_replies(
+                channel=channel_id,
+                ts=thread_ts,
+                cursor=cursor
+            )
+            child_messages = [
+                m for m in response["messages"]
+                if m["ts"] != thread_ts
+            ]
+
+            for msg in child_messages:
+                replies.append(parse_message(msg, user_map, channel_map))
+
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+    except SlackApiError as e:
+        print(f"Error fetching thread replies: {e.response['error']}")
+        raise
+    return replies
+
 if __name__ == "__main__":
-    test_simple_slackify()
+    r = get_channel_messages(channel_id="C084CLRBW6L", start_time="2025-01-29T00:00:00", end_time="2025-01-30T23:59:59")
+    print(r)

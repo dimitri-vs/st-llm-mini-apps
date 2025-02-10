@@ -18,11 +18,13 @@ st.markdown("""
 ### Current Apps
 
 - **Better Loom Info**: Enhances Loom video transcripts with AI-generated summaries and chapter markers.
-- **New Upwork Contract**: (WIP) Draft standardized contract titles and descriptions for new or existing Upwork contracts.
 - **Meeting Action Items**: Converts meeting transcripts into actionable insights and summaries.
-- **Slack Explorer**: Browse and search Slack workspace exports locally.
-- **Token Counter**: Calculate token usage and costs for various LLM models.
 - **LLM Context Builder**: Build and manage context for LLM interactions.
+- **Client Onboarding**: Helps capture and generate core content for initial client engagements.
+- **New Upwork Contract**: (WIP) Draft standardized contract titles and descriptions for new or existing Upwork contracts.
+- **Slack Bot Messenger**: Send formatted messages to Slack channels using bot integration.
+- **Slack Explorer**: (separate app) Browse and search Slack workspace exports locally.
+- **Token Counter**: Calculate token usage and costs for various LLM models.
 
 ### Coming Soon
 

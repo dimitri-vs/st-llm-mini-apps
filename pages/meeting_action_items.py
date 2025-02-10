@@ -3,6 +3,7 @@ import json
 import streamlit as st
 from components.chat_component import chat_component
 from utils.anthropic_llm import get_anthropic_completion, get_anthropic_json_completion, stream_anthropic_completion
+from utils.people_roles import parse_people_roles
 
 st.set_page_config(
     page_title="Agency Gen AI Mini-Apps",
@@ -30,22 +31,57 @@ transcript = st.text_area(
     help="All these platforms have a way to download the transcript. Make sure they include timestamps and correct speaker names, if applicable."
 )
 
-# Editable placeholder for recipient context
-RECIPIENT_CONTEXT_PLACEHOLDER = """
+# Automatically detect participants when transcript changes
+if transcript and (
+    "participants" not in st.session_state or
+    "last_transcript" not in st.session_state or
+    st.session_state.get("last_transcript") != transcript
+):
+    participants = parse_people_roles(transcript)
+    st.session_state.participants = participants
+    st.session_state.last_transcript = transcript
+
+def format_people_roles_for_prompt(participants):
+    """Format participant data into a prompt-friendly string."""
+    lines = []
+    for p in participants:
+        lines.append(f"- {p['name']}: {p['role']}")
+    return "\n".join(lines)
+
+if "participants" in st.session_state:
+    st.markdown("### Participants & Roles")
+    # Convert participants to formatted text and store in session state if not already present
+    if "participant_text" not in st.session_state:
+        st.session_state.participant_text = format_people_roles_for_prompt(st.session_state.participants)
+
+    # Display editable text area with detected participants
+    updated_participant_text = st.text_area(
+        "Edit participants and roles as needed",
+        value=st.session_state.participant_text,
+        key="participant_text",
+        help="Each line should follow the format: '- Name: Role'"
+    )
+
+    # Update recipient context directly from text area
+    recipient_context = updated_participant_text
+
+else:
+    # Editable placeholder for manual recipient context
+    RECIPIENT_CONTEXT_PLACEHOLDER = """
 - Dimitri: web app development agency owner
 - ______: a client of the agency 🔴
 - ______: the agency ______🔴
-""".strip()
+    """.strip()
 
-recipient_context = st.text_area(
-    "Recipient Context",
-    value=st.session_state.get("recipient_context", RECIPIENT_CONTEXT_PLACEHOLDER),
-    key="recipient_context",
-    help="""**Examples:**
-- The intended recipient is John, and he is a developer that works for the agency.
-- The intended recipient is Leon, and they are a prospective client on Upwork with the following job: ...
-""".strip()
-)
+    recipient_context = st.text_area(
+        "Recipient Context",
+        value=st.session_state.get("recipient_context", RECIPIENT_CONTEXT_PLACEHOLDER),
+        key="recipient_context",
+        help="""**Examples:**
+    - The intended recipient is John, and he is a developer that works for the agency.
+    - The intended recipient is Leon, and they are a prospective client on Upwork with the following job: ...
+    """.strip()
+    )
 
 is_valid_recipient = "🔴" not in recipient_context
 is_valid_transcript = transcript and len(transcript.strip()) >= 50
@@ -57,21 +93,53 @@ if not is_valid_recipient:
 loom_prompt_1 = """
 Analyze the provided transcript and distill the key information.
 
-Create these sections:
-⏩ Recap - What the meeting was about in 1-2 sentences.
-✅ Action Items - List all action items with:
-  - Who is responsible (mark as "UNCLEAR" if not specified)
-  - What needs to be done
-  - Any relevant deadlines or context
+### **Participants & Roles**
+{recipient_context}
+
+### **Output Sections:**
+
+**⏩ Recap**
+Summarize the meeting in 1-2 sentences - what was discussed and its primary purpose, include the following placeholder on a new line below that:
+[MEETING LINK PLACEHOLDER🔴]
+
+
+**✅ Action Items (Grouped by Person)**
+- List each person's name followed by their tasks.
+- Use bullet points for each action item.
+
+**Example 1: Standard Task List**
+```
+John:
+• Set up CI/CD pipeline by next Friday
+• Review PR #123 and provide feedback by EOD
+• Schedule tech review with Sarah
+
+Sarah:
+• Send updated timeline to client by Wednesday
+• Follow up with design team about mockups
+
+Both:
+• Write API documentation
+```
+
+**Example 2: Grouped by Workstream (When Clear Task Divisions Exist)**
+```
+Michael:
+1. **Client Dashboard**
+• Implement user authentication - Due Monday
+• Add data visualization components
+• Write API documentation
+2. **API Migration**
+• Update endpoint schemas
+```
+
 ❓ Open Questions - List any:
   - Unresolved issues
   - Points needing clarification
   - Decisions pending
   - Questions raised but not fully addressed
 
-Key Names & Relations:
-{recipient_context}
-
+### **⚠️ Accuracy Considerations**
 Pay great attention when proper nouns and abbreviations are mentioned when reading the transcript, as these are often transcribed incorrectly due to the limitations of voice-to-text software. Consider quietly if the proper noun that is written is the correct one or if it should be interpreted as something else using the context of what is being discussed.
 
 <Transcript>
@@ -96,12 +164,12 @@ ln_chapters_prompt = """
 Great, now please review the transcript again and identify:
 1. Any subtle or implied action items that weren't explicitly stated
 2. Additional questions or decisions that need follow-up
-3. Any dependencies between action items
 
 Format your response using bullet points and maintain the same sections (TL;DR, Action Items, Open Questions) if you find new items to add.
 """.strip()
 
 # Add button and handle LLM interactions
+
 if st.button("Generate Action Items", type="primary", disabled=not is_valid_transcript):
 
     progress_bar = st.progress(0, text="Starting analysis...")
@@ -162,18 +230,17 @@ if 'combined_analysis' in st.session_state:
                     "Current Analysis:\n"
                     f"{st.session_state.combined_analysis}\n\n"
                 )
-                # Add context to just the first message
-                context_messages = messages.copy()
-                context_messages[0]["content"] = additional_context + context_messages[0]["content"]
+                return stream_anthropic_completion(
+                    messages,
+                    system=additional_context,
+                    temperature=0.7
+                )
             else:
                 # Use messages as-is for subsequent exchanges
-                context_messages = messages
-
-            return stream_anthropic_completion(
-                context_messages,
-                temperature=0.7,
-                max_tokens=1000
-            )
+                return stream_anthropic_completion(
+                    messages,
+                    temperature=0.7
+                )
 
         chat_component(
             messages_key="meeting_chat_messages",
@@ -182,4 +249,10 @@ if 'combined_analysis' in st.session_state:
             prompt_label="Ask questions about the analysis...",
             border=True,
             show_debug=True
+        )
+
+        # Add warning about context loss
+        st.warning(
+            "Note: The chat context is limited to one message exchange. ",
+            icon="⚠️"
         )
