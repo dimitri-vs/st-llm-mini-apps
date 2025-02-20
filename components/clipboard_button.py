@@ -8,9 +8,13 @@ def show_copy_button(text: str) -> None:
 
     Args:
         text: The text content to be copied to clipboard
+
+    Example:
+        sample_content = "This is some text that will be copied"
+        show_copy_button(sample_content)
     """
     # Escape backticks in content for safe injection into the JS template
-    safe_text = text.replace("`", "\\`")
+    safe_text = text.replace("`", "\\`").replace("${", "\\${")
     # TODO: make the on-hover text and border color dynamic like native streamlit buttons
     html_code = f"""
     <div style="
