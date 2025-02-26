@@ -14,7 +14,10 @@ def show_copy_button(text: str) -> None:
         show_copy_button(sample_content)
     """
     # Escape backticks in content for safe injection into the JS template
-    safe_text = text.replace("`", "\\`").replace("${", "\\${")
+    # safe_text = text.replace("`", "\\`").replace("${", "\\${")
+    # TODO: this seems to strip slashes in file paths and new lines mayber try json.dumps(text) approach again?
+
+
     # TODO: make the on-hover text and border color dynamic like native streamlit buttons
     html_code = f"""
     <div style="
@@ -77,7 +80,7 @@ def show_copy_button(text: str) -> None:
 
       // Add the copy button click handler using a functional pattern
       button.addEventListener("click", function() {{
-          navigator.clipboard.writeText(`{safe_text}`);
+          navigator.clipboard.writeText(`{text}`);
 
           // Visual feedback: Add success border
           const originalBorder = button.style.border;

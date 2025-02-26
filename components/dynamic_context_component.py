@@ -33,7 +33,7 @@ def extract_smart_name(context_text):
     # Default to first few words
     words = header.split()
     if words:
-        return " ".join(words[:3]) + ("..." if len(words) > 3 else "")
+        return " ".join(words[:10]) + ("..." if len(words) > 10 else "")
 
     return None
 

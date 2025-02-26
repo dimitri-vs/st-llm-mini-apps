@@ -1,9 +1,12 @@
-import json
+import os
 
 import streamlit as st
 from components.chat_component import chat_component
-from utils.anthropic_llm import get_anthropic_completion, get_anthropic_json_completion, stream_anthropic_completion
+from litellm import completion
 from utils.people_roles import parse_people_roles
+
+# Constants
+LLM_MODEL = os.getenv("DEFAULT_LLM_MODEL")
 
 st.set_page_config(
     page_title="Agency Gen AI Mini-Apps",
@@ -177,7 +180,11 @@ if st.button("Generate Action Items", type="primary", disabled=not is_valid_tran
     with st.spinner("Generating initial analysis..."):
         # First request - Get initial analysis
         messages = [{"role": "user", "content": rendered_prompt}]
-        initial_response = get_anthropic_completion(messages)
+        initial_response = completion(
+            model=LLM_MODEL,
+            messages=messages
+        ).choices[0].message.content
+
         # Store in session state
         st.session_state.initial_response = initial_response
 
@@ -189,7 +196,11 @@ if st.button("Generate Action Items", type="primary", disabled=not is_valid_tran
             {"role": "assistant", "content": initial_response},
             {"role": "user", "content": ln_chapters_prompt}
         ]
-        followup_response = get_anthropic_completion(messages)
+        followup_response = completion(
+            model=LLM_MODEL,
+            messages=messages
+        ).choices[0].message.content
+
         # Store combined response in session state
         st.session_state.combined_analysis = (
             initial_response +
@@ -223,23 +234,26 @@ if 'combined_analysis' in st.session_state:
             """
             # Only add the context if this is the first message in the conversation
             if len(messages) == 1:
-                additional_context = (
+                system_message = (
                     "You are helping answer questions about a meeting analysis.\n\n"
                     "Original Transcript:\n"
                     f"{transcript}\n\n"
                     "Current Analysis:\n"
                     f"{st.session_state.combined_analysis}\n\n"
                 )
-                return stream_anthropic_completion(
-                    messages,
-                    system=additional_context,
-                    temperature=0.7
+                full_messages = [{"role": "system", "content": system_message}] + messages
+
+                return completion(
+                    model=LLM_MODEL,
+                    messages=full_messages,
+                    stream=True
                 )
             else:
                 # Use messages as-is for subsequent exchanges
-                return stream_anthropic_completion(
-                    messages,
-                    temperature=0.7
+                return completion(
+                    model=LLM_MODEL,
+                    messages=messages,
+                    stream=True
                 )
 
         chat_component(

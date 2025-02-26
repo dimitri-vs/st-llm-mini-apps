@@ -1,8 +1,11 @@
+import os
 import streamlit as st
-
-from utils.anthropic_llm import get_anthropic_completion, stream_anthropic_completion
+from litellm import completion
 from components.chat_component import chat_component
 from components.dynamic_context_component import render_dynamic_context_sections
+
+# Constants
+LLM_MODEL = os.getenv("DEFAULT_LLM_MODEL")
 
 st.set_page_config(
     page_title="Agency Gen AI Mini-Apps",
@@ -154,7 +157,10 @@ st.text_area("Initial Prompt (Preview)", value=prompt_placeholder, height=100, d
 if st.button("Extract Onboarding Details", type="primary", disabled=not is_valid_roles):
     with st.spinner("Extracting details..."):
         messages = [{"role": "user", "content": prompt_placeholder}]
-        response = get_anthropic_completion(messages)
+        response = completion(
+            model=LLM_MODEL,
+            messages=messages
+        ).choices[0].message.content
         st.session_state.extracted_onboard_details = response
 
 if 'extracted_onboard_details' in st.session_state:
@@ -163,6 +169,33 @@ if 'extracted_onboard_details' in st.session_state:
         label="Extracted Details",
         value=st.session_state.extracted_onboard_details,
         height=300
+    )
+
+    # Add research prompt section below the extraction details
+    st.write("Use the following prompt to conduct deep research on the client and add that to the context sources.")
+
+    research_prompt = """
+CONTEXT: I am the founder of a small web app development agency specializing in generative AI, employing around 10 people who are international and fully remote.
+
+I want you to help me with the process of conducting background research on a client "{client_name}"🔴
+
+To make sure you are finding the right person, here is some tentative profile I have on them so far:
+
+[name, email, location, etc.]🔴
+
+I want you to gather additional publicly available information such as:
+
+- Any sources confirming their location or address
+- Attempt to find their business registration
+- A description of their core business activities and industry focus
+- Link to their personal social media profile (Twitter, Facebook, etc.)
+- Link to their business and/or personal website
+- Any news articles or industry publications about them or their business
+    """.strip()
+
+    st.text_area(
+        label="Client Research Prompt",
+        value=research_prompt
     )
 
 st.markdown("---")
@@ -181,7 +214,10 @@ st.text_area(
 if st.button("Generate Detailed Profile", type="primary", disabled=not is_valid_roles):
     with st.spinner("Generating detailed profile..."):
         messages = [{"role": "user", "content": profile_prompt}]
-        response = get_anthropic_completion(messages)
+        response = completion(
+            model=LLM_MODEL,
+            messages=messages
+        ).choices[0].message.content
         st.session_state.detailed_profile = response
 
 if 'detailed_profile' in st.session_state:
@@ -234,7 +270,11 @@ if 'detailed_profile' in st.session_state:
                 "content": additional_instructions
             })
 
-            return stream_anthropic_completion(updated_messages)
+            return completion(
+                model=LLM_MODEL,
+                messages=updated_messages,
+                stream=True
+            )
 
         # Render the new generic chat component
         chat_component(
@@ -259,7 +299,10 @@ st.text_area(
 if st.button("Generate Titles & Summary", type="primary", disabled=not is_valid_roles):
     with st.spinner("Generating titles and summary..."):
         messages = [{"role": "user", "content": title_summary_prompt}]
-        response = get_anthropic_completion(messages)
+        response = completion(
+            model=LLM_MODEL,
+            messages=messages
+        ).choices[0].message.content
         st.session_state.title_summary = response
 
 if 'title_summary' in st.session_state:
@@ -310,7 +353,11 @@ if 'title_summary' in st.session_state:
                 "content": additional_instructions
             })
 
-            return stream_anthropic_completion(updated_messages)
+            return completion(
+                model=LLM_MODEL,
+                messages=updated_messages,
+                stream=True
+            )
 
         chat_component(
             messages_key="title_summary_chat_messages",

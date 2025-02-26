@@ -25,6 +25,7 @@ st.markdown("""
 - **Slack Bot Messenger**: Send formatted messages to Slack channels using bot integration.
 - **Slack Explorer**: (separate app) Browse and search Slack workspace exports locally.
 - **Token Counter**: Calculate token usage and costs for various LLM models.
+- **Humanize LLM Response**: Converts fancy typography marks in LLM responses to plain ASCII characters.
 
 ### Coming Soon
 
