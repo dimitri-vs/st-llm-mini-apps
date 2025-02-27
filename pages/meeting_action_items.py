@@ -109,6 +109,8 @@ Summarize the meeting in 1-2 sentences - what was discussed and its primary purp
 **✅ Action Items (Grouped by Person)**
 - List each person's name followed by their tasks.
 - Use bullet points for each action item.
+- When there are multiple tasks with clear relationships or commonalities (eg. regarding the same client or project), group them together to improve readability.
+- Avoid using markdown formatting like headers ("#"), bold, or italic text.
 
 **Example 1: Standard Task List**
 ```
@@ -128,12 +130,16 @@ Both:
 **Example 2: Grouped by Workstream (When Clear Task Divisions Exist)**
 ```
 Michael:
-1. **Client Dashboard**
+1. Client Dashboard
 • Implement user authentication - Due Monday
 • Add data visualization components
 • Write API documentation
-2. **API Migration**
+2. API Migration
 • Update endpoint schemas
+
+James:
+• Review PR #123 and provide feedback by EOD
+• Schedule tech review with Sarah
 ```
 
 ❓ Open Questions - List any:
