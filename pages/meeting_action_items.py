@@ -93,7 +93,7 @@ if not is_valid_recipient:
     st.warning("Complete the recipient details and remove the red dot (🔴)", icon="⚠️")
 
 # Initial LLM prompt to generate Loom video notes
-loom_prompt_1 = """
+meeting_prompt_1 = """
 Analyze the provided transcript and distill the key information.
 
 ### **Participants & Roles**
@@ -157,7 +157,7 @@ Pay great attention when proper nouns and abbreviations are mentioned when readi
 """.strip()
 
 # Read-only text area for previewing the rendered prompt template
-rendered_prompt = loom_prompt_1.format(
+rendered_prompt = meeting_prompt_1.format(
     recipient_context=recipient_context,
     transcript=transcript
 )
@@ -177,14 +177,52 @@ Great, now please review the transcript again and identify:
 Format your response using bullet points and maintain the same sections (TL;DR, Action Items, Open Questions) if you find new items to add.
 """.strip()
 
+# Meeting title prompt
+meeting_title_prompt = """
+Given a meeting transcript, create a brief title in this format:
+
+Format: {{Names}}: {{Key Topics}}
+
+Names:
+- First names of 2-3 key speakers
+- Add "..." if more than 3
+- Separate with commas
+
+Topics:
+- 4-6 words max, brevity > grammar
+- Use & between topics
+- Capitalize key words
+
+Examples:
+"John, Sarah: Q4 Planning & Hiring"
+"Mike, Ana, ...: Product Launch Strategy"
+
+<Transcript>
+{transcript}
+</Transcript>
+""".strip()
+
 # Add button and handle LLM interactions
 
-if st.button("Generate Action Items", type="primary", disabled=not is_valid_transcript):
+if st.button("✨ Generate Title & Action Items", type="primary", disabled=not is_valid_transcript):
 
     progress_bar = st.progress(0, text="Starting analysis...")
 
+    with st.spinner("Generating meeting title..."):
+        # First request - Get meeting title
+        title_messages = [{"role": "user", "content": meeting_title_prompt.format(transcript=transcript)}]
+        meeting_title = completion(
+            model=LLM_MODEL,
+            messages=title_messages
+        ).choices[0].message.content
+
+        # Store in session state
+        st.session_state.meeting_title = meeting_title
+
+        progress_bar.progress(25, text="Generating initial analysis...")
+
     with st.spinner("Generating initial analysis..."):
-        # First request - Get initial analysis
+        # Second request - Get initial analysis
         messages = [{"role": "user", "content": rendered_prompt}]
         initial_response = completion(
             model=LLM_MODEL,
@@ -194,9 +232,9 @@ if st.button("Generate Action Items", type="primary", disabled=not is_valid_tran
         # Store in session state
         st.session_state.initial_response = initial_response
 
-        progress_bar.progress(50, text="Generating additional insights...")
+        progress_bar.progress(75, text="Generating additional insights...")
 
-        # Second request - Get follow-up analysis
+        # Third request - Get follow-up analysis
         messages = [
             {"role": "user", "content": rendered_prompt},
             {"role": "assistant", "content": initial_response},
@@ -209,6 +247,7 @@ if st.button("Generate Action Items", type="primary", disabled=not is_valid_tran
 
         # Store combined response in session state
         st.session_state.combined_analysis = (
+            f"# {meeting_title}\n\n" +
             initial_response +
             "\n\n═══════════════════════════════════════════\n" +
             "📝 Additional Insights\n" +

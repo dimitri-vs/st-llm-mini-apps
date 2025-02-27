@@ -96,7 +96,14 @@ def chat_component(
 
                     print(st.session_state[messages_key])
                     for chunk in response_stream(st.session_state[messages_key][:-1]):
-                        response_content += chunk
+                        # Extract content from the LiteLLM streaming format
+                        # LiteLLM uses OpenAI-compatible format where content is in choices[0].delta.content
+                        chunk_content = ""
+                        if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
+                            if hasattr(chunk.choices[0], 'delta') and hasattr(chunk.choices[0].delta, 'content'):
+                                chunk_content = chunk.choices[0].delta.content or ""
+
+                        response_content += chunk_content
                         st.session_state[messages_key][-1]["content"] = response_content
                         response_placeholder.markdown(response_content)
 
