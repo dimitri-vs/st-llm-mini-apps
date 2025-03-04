@@ -139,6 +139,34 @@ ______ is the agency ______. 🔴
 # Main App
 # =============================================================================
 
+with st.expander("ChatGPT Deep Research Prompt"):
+    # Add research prompt section below the extraction details
+    st.write("Use the following prompt to conduct deep research on the client and add that to the context sources.")
+
+    research_prompt = """
+    CONTEXT: I am the founder of a small web app development agency specializing in generative AI, employing around 10 people who are international and fully remote.
+
+    I want you to help me with the process of conducting background research on a client "{client_name}"🔴
+
+    To make sure you are finding the right person, here is some tentative profile I have on them so far:
+
+    [name, email, location, etc.]🔴
+
+    I want you to gather additional publicly available information such as:
+
+    - Any sources confirming their location or address
+    - Attempt to find their business registration
+    - A description of their core business activities and industry focus
+    - Link to their personal social media profile (Twitter, Facebook, etc.)
+    - Link to their business and/or personal website
+    - Any news articles or industry publications about them or their business
+    """.strip()
+
+    st.text_area(
+        label="Client Research Prompt",
+        value=research_prompt
+    )
+
 # NOTE: We'll gather multiple context snippets (transcripts, job postings, etc.)
 st.markdown("Use the sections below to provide any client-related context (meeting transcripts, emails, etc.).")
 
@@ -169,33 +197,6 @@ if 'extracted_onboard_details' in st.session_state:
         label="Extracted Details",
         value=st.session_state.extracted_onboard_details,
         height=300
-    )
-
-    # Add research prompt section below the extraction details
-    st.write("Use the following prompt to conduct deep research on the client and add that to the context sources.")
-
-    research_prompt = """
-CONTEXT: I am the founder of a small web app development agency specializing in generative AI, employing around 10 people who are international and fully remote.
-
-I want you to help me with the process of conducting background research on a client "{client_name}"🔴
-
-To make sure you are finding the right person, here is some tentative profile I have on them so far:
-
-[name, email, location, etc.]🔴
-
-I want you to gather additional publicly available information such as:
-
-- Any sources confirming their location or address
-- Attempt to find their business registration
-- A description of their core business activities and industry focus
-- Link to their personal social media profile (Twitter, Facebook, etc.)
-- Link to their business and/or personal website
-- Any news articles or industry publications about them or their business
-    """.strip()
-
-    st.text_area(
-        label="Client Research Prompt",
-        value=research_prompt
     )
 
 st.markdown("---")

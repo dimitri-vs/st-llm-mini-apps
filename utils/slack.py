@@ -80,11 +80,18 @@ def get_channel_messages(
         while True:
             result = client.conversations_history(
                 channel=channel_id,
-                limit=100,
+                limit=200,
                 oldest=str(start_ts),
                 latest=str(end_ts),
                 cursor=cursor
             )
+
+            # Check if we're hitting the pagination limit
+            if len(result["messages"]) == 200:
+                raise NotImplementedError(
+                    "Retrieved exactly 200 messages, which is the current limit. "
+                    "Pagination is not implemented. Please narrow your date range to ensure all messages are retrieved."
+                )
 
             for msg in result["messages"]:
                 parsed = parse_message(msg, user_map, channel_map)
@@ -353,8 +360,11 @@ def parse_message(
     """
     Extract only the relevant Slack message fields and replace ID placeholders in text.
     """
+    user_id = message.get("user")
+
     parsed = {
-        "user": message.get("user"),
+        "user": user_id,
+        "username": user_map.get(user_id, "Unknown User") if user_id else "Unknown User",
         "team": message.get("team"),
         "ts": message.get("ts"),
         "type": message.get("type"),
