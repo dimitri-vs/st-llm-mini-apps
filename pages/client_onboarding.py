@@ -59,8 +59,15 @@ def build_detailed_profile_prompt(context_snippets, people_and_roles):
 Use the provided context to write a client and project profile. Include the following sections:
 
 👤 Client Description - Two or three sentences about who the client is, their business sector, what they do, our primary contact and their partners/associates.
+
 🎯 Project Goals - What are the main problems they were facing and/or what are their initial goals with the project
-📝 Specs & Scope - An overview of the tentative plan for executing the project, explain the proposed approach or solution, and if applicable, break the project down into Phases.
+
+📝 Tentative Specs & Scope
+A high-level overview of possible project approaches based on available information, suggesting potential solutions and flexible project phases. These are highly preliminary ideas that might evolve significantly during discovery, research, and collaborative scoping with the client.
+Consider how the project might unfold across potential phases. The bracketed items represent possible focus areas that could be determined through client collaboration:
+  - Phase 1: Discovery & Planning (~3 hours): An exploratory phase where we engage with the client to better understand needs, review relevant materials, and research applicable technologies or platforms. This could typically result in a brief document outlining possible approaches, potential architectures, and estimated effort ranges for subsequent work.
+  - Phase 2: [Initial Implementation | Proof of Concept] (Hours TBD): This phase might aim to deliver early value while testing core assumptions. The specific form could vary widely by project - from lightweight prototypes to functional implementations of critical features. The goal might be to provide tangible progress that informs next steps.
+  - Phase 3: [Minimum Viable Product | Testing & Refinement | Product Launch | Post-Launch Support] (Hours TBD): Depending on project trajectory and client priorities, this phase might involve various activities such as expanding functionality, optimizing performance, preparing for launch, or establishing maintenance processes. Scope could be determined based on outcomes from earlier phases.
 
 People & Roles Information:
 {}
@@ -139,7 +146,7 @@ ______ is the agency ______. 🔴
 # Main App
 # =============================================================================
 
-with st.expander("ChatGPT Deep Research Prompt"):
+with st.expander("👤🔍ChatGPT Deep Research Prompt"):
     # Add research prompt section below the extraction details
     st.write("Use the following prompt to conduct deep research on the client and add that to the context sources.")
 
@@ -150,16 +157,48 @@ with st.expander("ChatGPT Deep Research Prompt"):
 
     To make sure you are finding the right person, here is some tentative profile I have on them so far:
 
+
     [name, email, location, etc.]🔴
+
 
     I want you to gather additional publicly available information such as:
 
     - Any sources confirming their location or address
-    - Attempt to find their business registration
     - A description of their core business activities and industry focus
     - Link to their personal social media profile (Twitter, Facebook, etc.)
     - Link to their business and/or personal website
     - Any news articles or industry publications about them or their business
+    """.strip()
+
+    st.text_area(
+        label="Client Research Prompt",
+        value=research_prompt
+    )
+
+with st.expander("🚩🔍ChatGPT Red Flag Deep Research Prompt"):
+    # Add research prompt section below the extraction details
+    st.write("Use the following prompt to conduct deep research on the client and add that to the context sources.")
+
+    research_prompt = """
+    CONTEXT: I am the founder of a small web app development agency specializing in generative AI, employing around 10 people who are international and fully remote.
+
+    I want you to help me with the process of conducting background research on a client "{client_name}"🔴
+
+    To make sure you are finding the right person, here is some tentative profile I have on them so far:
+
+
+    [name, email, location, etc.]🔴
+
+
+    I need you gather publicly available information to identify any potential red flags that might make me reconsider working with this client. Here are some things you might want to check, along with where you might look for them. Note: the suggested sources are not to be interpreted as an exclusive list, they are only generic examples that may or may not be relevant to the client in question.
+
+    - Check for negative reviews or complaints about their business practices (Trustpilot, BBB, Yelp, Google Reviews)
+    - Look for any legal issues, lawsuits, or regulatory problems (Court records, complaints/filings, news archives)
+    - Identify any history of payment disputes with contractors or vendors (forum mentions, Glassdoor, contractor review sites)
+    - Note any concerning social media behavior or public controversies (Twitter/X, LinkedIn, Facebook, Reddit threads)
+    - Assess if they may have unrealistic expectations based on their public statements (Company blog, interviews, press releases)
+
+    At the end of your report, provide a summary of your findings and any potential red flags.
     """.strip()
 
     st.text_area(
