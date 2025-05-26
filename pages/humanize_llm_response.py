@@ -11,12 +11,12 @@ def setup_page():
 def replace_typography_marks(text: str) -> str:
     # Typography marks replacements
     replacements = {
-        '"': '"',  # Fancy double quotes to regular
-        '"': '"',
-        ''': "'",  # Fancy single quotes to regular
-        ''': "'",
-        '—': '-',  # Em dash to regular dash
-        '–': '-',  # En dash to regular dash
+        '“': '"',  # Left double quotation mark U+201C
+        '”': '"',  # Right double quotation mark U+201D
+        '‘': "'",  # Left single quotation mark U+2018
+        '’': "'",  # Right single quotation mark U+2019
+        '—': '-',  # Em dash U+2014
+        '–': '-',  # En dash U+2013
     }
 
     # Latin abbreviation simplifications
@@ -39,6 +39,12 @@ def replace_typography_marks(text: str) -> str:
 
 def main():
     setup_page()
+
+    st.markdown("""
+    > BEFORE: “This response—replete with smart quotes, Oxford commas, and meticulous abbreviations (e.g., “this” and “that”)—is unmistakably the handiwork of ChatGPT.”
+    >
+    > AFTER: “This response-replete with smart quotes, Oxford commas, and meticulous abbreviations (eg. "this" and "that")-is unmistakably the handiwork of ChatGPT.”
+    """)
 
     input_text = st.text_area(
         "Paste LLM response here:",

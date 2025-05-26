@@ -2,7 +2,7 @@ import os
 
 import streamlit as st
 from components.chat_component import chat_component
-from litellm import completion
+import litellm
 from utils.people_roles import parse_people_roles
 
 # Constants
@@ -211,7 +211,7 @@ if st.button("✨ Generate Title & Action Items", type="primary", disabled=not i
     with st.spinner("Generating meeting title..."):
         # First request - Get meeting title
         title_messages = [{"role": "user", "content": meeting_title_prompt.format(transcript=transcript)}]
-        meeting_title = completion(
+        meeting_title = litellm.completion(
             model=LLM_MODEL,
             messages=title_messages
         ).choices[0].message.content
@@ -224,7 +224,7 @@ if st.button("✨ Generate Title & Action Items", type="primary", disabled=not i
     with st.spinner("Generating initial analysis..."):
         # Second request - Get initial analysis
         messages = [{"role": "user", "content": rendered_prompt}]
-        initial_response = completion(
+        initial_response = litellm.completion(
             model=LLM_MODEL,
             messages=messages
         ).choices[0].message.content
@@ -240,7 +240,7 @@ if st.button("✨ Generate Title & Action Items", type="primary", disabled=not i
             {"role": "assistant", "content": initial_response},
             {"role": "user", "content": ln_chapters_prompt}
         ]
-        followup_response = completion(
+        followup_response = litellm.completion(
             model=LLM_MODEL,
             messages=messages
         ).choices[0].message.content
@@ -288,14 +288,14 @@ if 'combined_analysis' in st.session_state:
                 )
                 full_messages = [{"role": "system", "content": system_message}] + messages
 
-                return completion(
+                return litellm.completion(
                     model=LLM_MODEL,
                     messages=full_messages,
                     stream=True
                 )
             else:
                 # Use messages as-is for subsequent exchanges
-                return completion(
+                return litellm.completion(
                     model=LLM_MODEL,
                     messages=messages,
                     stream=True
