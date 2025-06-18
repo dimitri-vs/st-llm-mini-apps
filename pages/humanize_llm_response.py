@@ -61,5 +61,11 @@ def main():
             disabled=True
         )
 
+        # Render the cleaned text as markdown in its own container
+        st.markdown("Rendered preview:")
+        render_container = st.container(border=True)
+        with render_container:
+            st.markdown(cleaned_text)
+
 if __name__ == "__main__":
     main()
